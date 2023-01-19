@@ -7,9 +7,24 @@ type Params = Readonly<{
   languageCodename: string;
 }>;
 
+const storageKey = 'myTestKey';
+
 export const App: FC = () => {
   const params = useParams<Params>();
   const [item, setItem] = useState<IContentItem | null>(null);
+  const [storedNum, setStoredNum] = useState<number | null>(null);
+
+  useEffect(() => {
+    const existing = window.localStorage.getItem(storageKey);
+    if (existing) {
+      setStoredNum(Number(existing));
+      return;
+    }
+    const newNum = Math.ceil(Math.random() * 100);
+    window.localStorage.setItem(storageKey, newNum.toString());
+    setStoredNum(newNum);
+  }, []);
+
 
   useEffect(() => {
     if (!params.itemCodename || !params.languageCodename) {
@@ -32,6 +47,7 @@ export const App: FC = () => {
 
   return (
     <>
+      {storedNum === null ? <div>Nothing is stored.</div> : storedNum}
       <h1>Item: </h1>
       {Object.entries(item.elements).map(([codename, el]) => (
         <Element key={codename} el={el} />
