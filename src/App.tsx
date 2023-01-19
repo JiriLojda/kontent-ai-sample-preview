@@ -1,26 +1,133 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import React, { FC, useEffect, useState } from 'react';
+import { createDeliveryClient, ElementModels, Elements, ElementType, IContentItem } from "@kontent-ai/delivery-sdk";
+import { useParams } from "react-router";
 
-function App() {
+type Params = Readonly<{
+  itemCodename: string;
+  languageCodename: string;
+}>;
+
+export const App: FC = () => {
+  const params = useParams<Params>();
+  const [item, setItem] = useState<IContentItem | null>(null);
+
+  useEffect(() => {
+    if (!params.itemCodename || !params.languageCodename) {
+      throw new Error('Invalid route, item or language codename is missing.');
+    }
+
+    client
+      .item(params.itemCodename)
+      .languageParameter(params.languageCodename)
+      .queryConfig({ usePreviewMode: true })
+      .toPromise()
+      .then(res => setItem(res.data.item));
+  }, [params.itemCodename, params.languageCodename]);
+
+  if (item === null) {
+    return (
+      <h1>Loading...</h1>
+    );
+  }
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <>
+      <h1>Item: </h1>
+      {Object.entries(item.elements).map(([codename, el]) => (
+        <Element key={codename} el={el} />
+      ))}
+    </>
   );
+};
+
+const Element = ({ el }: { readonly el: ElementModels.IElement<unknown> }) => {
+  switch (el.type) {
+    case ElementType.Asset: {
+      const elTyped = el as Elements.AssetsElement;
+
+      return (
+        <section>
+          <ElementHeader element={el} />
+          {elTyped.value.map((asset, index) => (
+            <img
+              key={index}
+              src={asset.url}
+              alt={asset.description ?? ''}
+              width={asset.width ?? undefined}
+              height={asset.height ?? undefined}
+            />
+          ))}
+        </section>
+      );
+    }
+    case ElementType.ModularContent: {
+      const elTyped = el as Elements.LinkedItemsElement;
+
+      return (
+        <section>
+          <ElementHeader element={el} />
+          <StringValue value={elTyped.value.join(', ')} />
+        </section>
+      );
+    }
+    case ElementType.MultipleChoice: {
+      const elTyped = el as Elements.MultipleChoiceElement;
+
+      return (
+        <section>
+          <ElementHeader element={el} />
+          <StringValue value={elTyped.value.map(c => `${c.name};${c.codename}`).join(', ')} />
+        </section>
+      );
+    }
+    case ElementType.Number: {
+      const elTyped = el as Elements.NumberElement;
+
+      return (
+        <section>
+          <ElementHeader element={el} />
+          <StringValue value={elTyped.value?.toString() ?? ''} />
+        </section>
+      );
+    }
+    case ElementType.Custom:
+    case ElementType.DateTime:
+    case ElementType.Text:
+    case ElementType.UrlSlug:
+    case ElementType.RichText: {
+      const elTyped = el as Elements.RichTextElement | Elements.CustomElement | Elements.DateTimeElement | Elements.TextElement | Elements.UrlSlugElement;
+
+      return (
+        <section>
+          <ElementHeader element={el} />
+          <StringValue value={elTyped.value ?? ''} />
+        </section>
+      );
+    }
+    case ElementType.Taxonomy: {
+      const elTyped = el as Elements.TaxonomyElement;
+
+      return (
+        <section>
+          <ElementHeader element={el} />
+          <StringValue value={elTyped.value.map(term => `${term.name};${term.codename}`).join(', ')} />
+        </section>
+      );
+    }
+    default:
+      throw new Error(`Unknown element type: ${el.type}`);
+  }
 }
 
-export default App;
+const StringValue = (props: { readonly value: string }) => (
+  <p>value: {props.value}</p>
+);
+
+const ElementHeader = (props: { readonly element: ElementModels.IElement<unknown> }) => (
+  <h3>type: {props.element.type}, name: {props.element.name}</h3>
+);
+
+const client = createDeliveryClient({
+  projectId: '25096f15-2b2c-00ba-d1c0-c7ca45671732',
+  previewApiKey: process.env['REACT_APP_previewApiKey'],
+});

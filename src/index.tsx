@@ -1,15 +1,20 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import './index.css';
-import App from './App';
+import { App } from './App';
 import reportWebVitals from './reportWebVitals';
+import { BrowserRouter, Route, Routes } from "react-router-dom";
 
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
 );
 root.render(
   <React.StrictMode>
-    <App />
+    <BrowserRouter>
+      <Routes>
+        <Route path={'/item/:itemCodename/language/:languageCodename'} element={<App />} />
+        <Route index element={<h1>This is not a valid route. :P</h1>} />
+      </Routes>
+    </BrowserRouter>
   </React.StrictMode>
 );
 
