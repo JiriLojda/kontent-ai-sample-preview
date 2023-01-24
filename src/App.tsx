@@ -16,6 +16,7 @@ export const App: FC = () => {
 
   useEffect(() => {
     const existing = window.localStorage.getItem(storageKey);
+    document.cookie = `${storageKey}=${Math.random()}`;
     if (existing) {
       setStoredNum(Number(existing));
       return;
